@@ -11,6 +11,7 @@
 <meta property="og:title" content="Qora · akýkoľvek softvér na kľúč">
 <meta property="og:description" content="Web, ktorý rastie ako strom. Vyberte semienko a sledujte, kam sa môže rozvetviť.">
 <meta property="og:locale" content="sk_SK">
+<meta property="og:site_name" content="Qora s.r.o.">
 <meta name="theme-color" content="#EDEFF4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E2C66" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -184,7 +185,7 @@ button{font:inherit;color:inherit}
 </main>
 
 <footer class="foot">
-  <span>Qora · akýkoľvek softvér na kľúč</span>
+  <span>© <span id="year">2026</span> Qora s.r.o. · akýkoľvek softvér na kľúč</span>
   <span class="copy">Máte vlastné semienko? <a href="mailto:info@qora.sk">info@qora.sk</a><button type="button" data-copy="mail">Kopírovať</button></span>
 </footer>
 
@@ -627,6 +628,7 @@ const SCALE = {q:'Aká veľká má byť prvá verzia?', o:[
   if (window.ResizeObserver) new ResizeObserver(relayout).observe(tree); else addEventListener('resize', relayout);
   if (document.fonts) document.fonts.ready.then(relayout);
 
+  $('#year').textContent = new Date().getFullYear();
   render(0);
 })();
 </script>
