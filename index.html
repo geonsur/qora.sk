@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Qora · akýkoľvek softvér na kľúč</title>
+<meta name="description" content="Qora postaví akýkoľvek softvér na kľúč: interné systémy, mobilné aplikácie, AI, softvér pre stroje, hry aj VR. Vyberte semienko a sledujte, kam sa môže rozvetviť.">
+<link rel="canonical" href="https://qora.sk/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qora.sk/">
+<meta property="og:title" content="Qora · akýkoľvek softvér na kľúč">
+<meta property="og:description" content="Web, ktorý rastie ako strom. Vyberte semienko a sledujte, kam sa môže rozvetviť.">
+<meta property="og:locale" content="sk_SK">
+<meta name="theme-color" content="#EDEFF4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E2C66" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Sans:wght@400;500;600&family=Martian+Mono:wdth,wght@75..112.5,400..600&display=swap">
+<style>
+/* Layout: web je rozhodovací strom (vývojový diagram). Uzly rastú zhora nadol, každý ďalší sa posunie pod zvolenú vetvu, nevybrané vetvy ostávajú odrezané. */
+:root{
+  --paper:#EDEFF4; --paper-2:#E1E4EE; --ink:#2B2770; --ink-2:#5D5AA3;
+  --line:rgba(43,39,112,.24); --dot:rgba(43,39,112,.16); --hatch:rgba(43,39,112,.4);
+  --mark:#C8372D; --on-ink:#EDEFF4;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Martian Mono",ui-monospace,Consolas,"Courier New",monospace;
+  --s-1:.75rem; --s-2:.875rem; --s-3:1rem; --s-4:1.25rem;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0E2C66; --paper-2:#0A2352; --ink:#E6EDFF; --ink-2:#A8BCEC;
+  --line:rgba(230,237,255,.26); --dot:rgba(230,237,255,.16); --hatch:rgba(230,237,255,.5);
+  --mark:#FF9A84; --on-ink:#0E2C66; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#0E2C66; --paper-2:#0A2352; --ink:#E6EDFF; --ink-2:#A8BCEC;
+  --line:rgba(230,237,255,.26); --dot:rgba(230,237,255,.16); --hatch:rgba(230,237,255,.5);
+  --mark:#FF9A84; --on-ink:#0E2C66; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+body{margin:0;background-color:var(--paper);color:var(--ink);
+  background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:22px 22px;
+  font:400 var(--s-3)/1.6 var(--f-body);padding:0 16px 40px}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px dashed var(--mark);outline-offset:3px}
+.label{font:500 .6875rem/1.3 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+
+/* ── Horná lišta ───────────────────────────── */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin:0 -16px;padding:12px 16px;background:var(--paper);border-bottom:1.5px solid var(--ink);
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+.logo{font:900 1.375rem/1 var(--f-display);font-variation-settings:"wdth" 125;letter-spacing:.02em;text-decoration:none;display:flex;align-items:center;gap:9px}
+.logo svg{width:24px;height:24px}
+.status{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px 16px;font:500 .6875rem/1.4 var(--f-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.status b{color:var(--ink);font-weight:600}
+.tools{display:flex;gap:8px}
+.tbtn{font:500 .6875rem/1 var(--f-mono);background:none;border:1px solid var(--ink);padding:8px 10px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.tbtn:hover{background:var(--paper-2)}
+
+/* ── Strom ───────────────────────────── */
+.tree{position:relative;max-width:1120px;margin:0 auto;padding-top:36px}
+.wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:0}
+.wires path{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round}
+.wires path.main{stroke-width:2.5}
+.wires path.cut{stroke:var(--ink-2);stroke-dasharray:3 5;opacity:.6}
+.wires path.idle{stroke:var(--ink-2)}
+.wires circle{fill:var(--ink)}
+.wires .x{stroke:var(--mark);stroke-width:1.5;fill:none}
+
+.term{position:relative;z-index:1;display:block;width:max-content;margin:0 auto 34px;border:1.5px solid var(--ink);border-radius:999px;padding:8px 22px;background:var(--paper);font:600 .75rem/1 var(--f-mono);letter-spacing:.14em}
+.step{position:relative;z-index:1;padding-bottom:56px}
+.col{width:min(640px,100%)}
+.node{position:relative;background:var(--paper);border:1.5px solid var(--ink)}
+.node-head{display:flex;justify-content:space-between;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line)}
+.node-body{padding:16px 16px 18px}
+.node h2,.node h3{margin:0 0 10px;font-family:var(--f-display);text-transform:uppercase;text-wrap:balance;line-height:.95}
+.node h2{font-weight:900;font-variation-settings:"wdth" 112;font-size:clamp(2rem,6vw,3.6rem)}
+.node h3{font-weight:800;font-variation-settings:"wdth" 72;font-size:clamp(1.6rem,4vw,2.25rem)}
+.node p{margin:0;max-width:60ch}
+.node p+p{margin-top:10px}
+.feats{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+.feats li{padding:8px 10px 8px 22px;border-bottom:1px solid var(--line);font-size:var(--s-2);position:relative;line-height:1.4}
+.feats li::before{content:"";position:absolute;left:4px;top:.85em;width:8px;height:8px;border:1.5px solid var(--ink);transform:rotate(45deg)}
+.feats li:nth-child(odd){border-right:1px solid var(--line)}
+.chip{display:inline-block;font:500 .6875rem/1 var(--f-mono);border:1px solid var(--ink);padding:5px 7px;white-space:nowrap}
+.chip.add{background:var(--ink);color:var(--on-ink)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.running{margin-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--ink)}
+.running div{padding:10px 12px}
+.running div+div{border-left:1px solid var(--line)}
+.num{display:block;font:800 1.75rem/1 var(--f-display);font-variation-settings:"wdth" 70;font-variant-numeric:tabular-nums;margin-top:4px}
+
+.decision{position:relative;padding:14px 16px 20px;border-top:1.5px solid var(--ink);background:var(--paper-2)}
+.decision .q{display:block;font:600 var(--s-4)/1.3 var(--f-body);margin-top:4px;text-wrap:balance}
+.dia{position:absolute;left:50%;bottom:-9px;width:16px;height:16px;margin-left:-8px;background:var(--paper);border:1.5px solid var(--ink);transform:rotate(45deg)}
+
+.opts{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:64px}
+.opt{position:relative;z-index:1;width:172px;min-height:86px;text-align:left;background:var(--paper);border:1.5px solid var(--ink);padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:8px;transition:transform .15s,box-shadow .15s,opacity .2s}
+.opt .k{font:500 .625rem/1 var(--f-mono);color:var(--ink-2)}
+.opt .t{font-weight:600;font-size:var(--s-2);line-height:1.3}
+.opt .d{font:500 .625rem/1 var(--f-mono);color:var(--ink-2)}
+.opt:hover{transform:translateY(-2px);box-shadow:0 3px 0 var(--ink)}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--on-ink)}
+.opt[aria-pressed="true"] .k,.opt[aria-pressed="true"] .d{color:var(--on-ink)}
+.opt.cut{border-style:dashed;opacity:.55}
+.opt.cut:hover{opacity:1}
+.opt.fin{border-width:2.5px;background:repeating-linear-gradient(-45deg,var(--hatch) 0 1px,transparent 1px 7px),var(--paper)}
+.opt.fin .t{background:var(--paper);align-self:flex-start;padding:1px 4px;margin:-1px -4px}
+.hint{text-align:center;margin-top:22px;font:500 .6875rem/1.4 var(--f-mono);color:var(--ink-2);letter-spacing:.06em}
+/* ── Výsledok ───────────────────────────── */
+.sum{width:100%;border-collapse:collapse;font-size:var(--s-2);margin-top:14px}
+.sum td{padding:7px 0;border-bottom:1px solid var(--line)}
+.sum td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:12px}
+.sum tr.tot td{border-top:2px solid var(--ink);border-bottom:none;font-weight:600;padding-top:10px}
+.flow{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 0;align-items:stretch}
+.flow li{display:flex;align-items:center}
+.flow li+li::before{content:"";width:16px;border-top:1.5px solid var(--ink)}
+.flow span{border:1.5px solid var(--ink);padding:6px 9px;font-size:var(--s-1);line-height:1.3;background:var(--paper)}
+.flow small{display:block;font:500 .5625rem/1.2 var(--f-mono);color:var(--ink-2)}
+.flow li:last-child span{border-style:dashed}
+.contact{margin-top:18px;border-top:1.5px solid var(--ink);padding-top:14px;display:grid;gap:12px}
+.contact .mail{font:800 clamp(1.5rem,4vw,2.1rem)/1 var(--f-display);font-variation-settings:"wdth" 80;text-decoration:none;max-width:100%;overflow-wrap:anywhere}
+.contact .mail:hover{text-decoration:underline;text-underline-offset:5px}
+.contact-row{display:flex;flex-wrap:wrap;gap:10px}
+.contact p{margin:0;font-size:var(--s-1);color:var(--ink-2);max-width:54ch}
+.send{font:600 var(--s-2)/1 var(--f-body);background:var(--ink);color:var(--on-ink);border:1.5px solid var(--ink);padding:13px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.send.ghost{background:transparent;color:var(--ink)}
+.send:hover{box-shadow:4px 4px 0 var(--mark)}
+
+/* ── Päta ───────────────────────────── */
+.foot{max-width:1120px;margin:24px auto 0;border-top:1.5px solid var(--ink);padding-top:14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;font-size:var(--s-2)}
+.copy{display:inline-flex;gap:8px;align-items:center;font-family:var(--f-mono);font-size:var(--s-1)}
+.copy button{font:500 .625rem/1 var(--f-mono);border:1px solid var(--ink);background:none;padding:4px 6px;cursor:pointer}
+
+/* ── Úzka obrazovka: strom ako adresárová štruktúra ───────────────────────────── */
+@media (max-width:700px){
+  .opts{flex-direction:column;align-items:stretch;gap:10px;margin-top:28px;padding-left:44px}
+  .opt{width:auto;min-height:0;flex-direction:row;align-items:center;flex-wrap:wrap;gap:4px 10px}
+  .opt .t{flex:1;min-width:0}
+  .dia{left:16px}
+  .feats{grid-template-columns:minmax(0,1fr)}
+  .feats li:nth-child(odd){border-right:none}
+  .running .num{font-size:1.375rem}
+  .term{margin-left:0}
+  .hint{text-align:left;padding-left:44px}
+  .dia{margin-left:0}
+}
+
+/* ── Rast ───────────────────────────── */
+@media (prefers-reduced-motion:no-preference){
+  .wires path.grow{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:grow .7s var(--dl,0s) ease-out forwards}
+  @keyframes grow{to{stroke-dashoffset:0}}
+  .step.fresh .col{animation:rise .5s .35s backwards}
+  .step.fresh .opt{animation:rise .4s calc(.6s + var(--i) * 60ms) backwards}
+  @keyframes rise{from{transform:translateY(10px);opacity:.2}}
+}
+
+/* ── Semienka ───────────────────────────── */
+.seed-note{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:var(--s-1);color:var(--ink-2);line-height:1.45}
+.seed-note::before{content:"";flex:none;width:10px;height:10px;margin-top:3px;border:1.5px solid var(--mark);border-radius:50% 0}
+.yours{margin-top:14px;border:1.5px dashed var(--mark);padding:10px 12px;font-size:var(--s-2)}
+.yours b{color:var(--mark)}
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="logo" href="#" id="home" aria-label="Qora, začať odznova">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4" r="2.6" fill="currentColor"/><path d="M12 6.6V12M12 12L5 19M12 12L19 19M12 12V20" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>
+    QORA
+  </a>
+  <div class="status" id="status" aria-live="polite"></div>
+  <div class="tools">
+    <button class="tbtn" type="button" id="reset">Odznova</button>
+    <button class="tbtn" type="button" id="theme">Modrotlač</button>
+  </div>
+</header>
+
+<main class="tree" id="tree">
+  <svg class="wires" id="wires" aria-hidden="true"></svg>
+  <span class="term" id="start">ŠTART</span>
+  <div id="steps"></div>
+</main>
+
+<footer class="foot">
+  <span>Qora · akýkoľvek softvér na kľúč</span>
+  <span class="copy">Máte vlastné semienko? <a href="mailto:info@qora.sk">info@qora.sk</a><button type="button" data-copy="mail">Kopírovať</button></span>
+</footer>
+
+<script>
+/* Naše semienka: príklady, z ktorých strom rastie. Vetva = [názov, týždne navyše, nadpis uzla, text uzla] */
+const SEEDS = [
+  {id:'servis', t:'Systém pre autoservis', tag:'Interný systém', w:10, h:'Autoservis bez papierových zákaziek',
+   p:'Od objednania termínu cez príjem auta až po faktúru. Mechanik vidí na tablete, čo má robiť, a zákazník dostane správu, keď je auto hotové.',
+   f:['Online objednanie termínu','Zákazkový list na tablete','Sklad dielov s objednávaním','Správa, keď je auto hotové'],
+   q1:'Čo vás v servise páli najviac?', o1:[
+    ['Chaos v termínoch', 1, 'Termíny, ktoré sedia', 'Kalendár zdvihákov a mechanikov pozná dĺžku bežných úkonov a nedovolí dvojitú rezerváciu.'],
+    ['Diely, ktoré chýbajú', 2, 'Diely v správnej chvíli', 'Diely sa objednajú už pri potvrdení termínu podľa VIN a typu úkonu, takže auto nestojí na zdviháku.'],
+    ['Telefonáty, či je auto hotové', 1, 'Zákazník vie všetko', 'Zákazník dostane odkaz, kde vidí stav auta a fotky z diagnostiky a môže schváliť opravu navyše.'],
+    ['Nevieme, na čom zarábame', 2, 'Čísla za každú zákazku', 'Odpracované hodiny, diely a marža za každú zákazku aj za každého mechanika.']],
+   q2:'Koľko máte prevádzok?', o2:[
+    ['Jeden servis', 0, 'Jeden servis', 'Všetko na jednom mieste, nasadenie za pár dní.'],
+    ['Niekoľko pobočiek', 2, 'Sieť pobočiek', 'Spoločný sklad dielov, presuny medzi pobočkami a prehľad za celú sieť.'],
+    ['Servis aj predaj áut', 3, 'Servis aj autosalón', 'Predaj, výkup a servis prepojíme, aby každé auto malo jednu históriu.']]},
+  {id:'vcely', t:'Senzory v úľoch', tag:'IoT', w:12, h:'Úle, ktoré podajú hlásenie',
+   p:'Malé senzory merajú váhu, teplotu a vlhkosť úľa. Včelár v mobile vidí, ktorému včelstvu sa niečo deje, bez otvárania úľa.',
+   f:['Váha úľa každú hodinu','Upozornenie na rojenie','Mapa stanovíšť','Denník prehliadok v mobile'],
+   q1:'Čo má systém strážiť najviac?', o1:[
+    ['Rojenie', 2, 'Varovanie pred rojením', 'Zmena zvuku a prudký pokles váhy spustia upozornenie skôr, než roj odletí.'],
+    ['Znášku', 1, 'Znáška v grafe', 'Krivka váhy ukáže, kedy začína znáška a kedy je čas vytáčať.'],
+    ['Zimovanie', 1, 'Pokojná zima', 'Teplota v chomáči a úbytok zásob povedia, či včelstvo zimu zvládne.'],
+    ['Krádeže úľov', 2, 'Ochrana stanovišťa', 'Pohyb úľa alebo otvorenie veka pošle okamžite správu aj s polohou.']],
+   q2:'Kde sú vaše úle?', o2:[
+    ['Pri dome s Wi-Fi', 0, 'Úle v dosahu Wi-Fi', 'Senzory posielajú dáta cez domácu sieť, stačí lacný hardvér.'],
+    ['Na lúkach bez signálu', 3, 'Kočovné stanovištia', 'Použijeme sieť LoRaWAN alebo NB-IoT, ktorá dosiahne aj tam, kde mobil nechytá.'],
+    ['Stovky úľov pre zväz', 5, 'Platforma pre celý zväz', 'Každý včelár vidí svoje úle a zväz dostane prehľad o zdraví včelstiev v regióne.']]},
+  {id:'docs', t:'AI nad firemnou dokumentáciou', tag:'AI', w:8, h:'Pýtajte sa dokumentácie ako kolegu',
+   p:'AI asistent, ktorý prečíta manuály, normy a staré zákazky a odpovie na otázku s odkazom na presnú stranu.',
+   f:['Odpoveď s citovaným zdrojom','Hľadanie v PDF aj skenoch','Prístup podľa oddelení','Dáta neopustia vašu firmu'],
+   q1:'Kto sa ho bude pýtať?', o1:[
+    ['Technici v teréne', 1, 'Odpovede priamo pri stroji', 'Technik sa opýta z mobilu aj hlasom a dostane postup s obrázkom z manuálu.'],
+    ['Nováčikovia vo firme', 0, 'Rýchlejšie zaučenie', 'Nový kolega sa nemusí báť pýtať. Asistent pozná interné pravidlá a postupy.'],
+    ['Obchodníci', 1, 'Technické odpovede pre obchod', 'Obchodník hneď vie, či produkt splní požiadavku zákazníka, a má na to podklad.'],
+    ['Zákazníci na webe', 2, 'Podpora nonstop', 'Zákazníci dostanú odpoveď v noci aj cez víkend. Ťažké otázky asistent odovzdá človeku.']],
+   q2:'Koľko je toho dokumentácie?', o2:[
+    ['Stovky dokumentov', 0, 'Prehľadná knižnica', 'Dokumenty spracujeme naraz a asistent je pripravený za pár dní.'],
+    ['Desaťtisíce strán a skenov', 2, 'Veľký archív', 'Staré skeny prečítame cez OCR a nastavíme pravidelné dopĺňanie nových dokumentov.'],
+    ['Roztrúsené v systémoch', 3, 'Jedno miesto pre všetko', 'Napojíme SharePoint, disk, e-maily aj staré systémy a asistent hľadá vo všetkých naraz.']]},
+  {id:'psi', t:'Rezervácie pre psí hotel', tag:'Zákaznícky portál', w:7, h:'Psí hotel, ktorý sa rezervuje sám',
+   p:'Majitelia si online vyberú termín a kotec, nahrajú očkovací preukaz a počas pobytu dostávajú fotky svojho psa.',
+   f:['Obsadenosť kotcov v kalendári','Kontrola očkovania pri rezervácii','Fotky a správy počas pobytu','Platba vopred'],
+   q1:'Čo k ubytovaniu ponúkate?', o1:[
+    ['Len ubytovanie', 0, 'Čisté ubytovanie', 'Rezervácia, príchod a odchod, nič navyše.'],
+    ['Venčenie a výcvik', 1, 'Služby navyše', 'K pobytu sa dá priobjednať venčenie či výcvik a ošetrovatelia majú denný plán.'],
+    ['Strihanie a kúpanie', 1, 'Salón v hoteli', 'Rezervácia salónu sa spojí s pobytom, takže pes ide domov čistý.'],
+    ['Dovoz a odvoz psa', 2, 'Psí taxík', 'Plán trás pre vodiča a majiteľ vidí na mape, kedy príde.']],
+   q2:'Koľko máte miest?', o2:[
+    ['Do 20 kotcov', 0, 'Malý hotel', 'Stačí jednoduchý kalendár a jedna obrazovka na recepcii.'],
+    ['Areál so zamestnancami', 1, 'Tím ošetrovateľov', 'Smeny, úlohy pri každom psovi a záznam o kŕmení a liekoch.'],
+    ['Sieť hotelov', 3, 'Viac prevádzok', 'Jedna značka, jeden web a voľné miesta naprieč všetkými hotelmi.']]},
+  {id:'dvojca', t:'Digitálne dvojča výrobnej linky', tag:'Priemysel', w:16, h:'Linka, ktorú vidíte aj z kancelárie',
+   p:'Živý 3D model linky napojený na stroje. Ukáže, kde vzniká úzke hrdlo, a umožní vyskúšať zmenu skôr, než sa pohne jediný stroj.',
+   f:['Stav strojov v reálnom čase','Simulácia zmien v pláne','Efektivita každého stroja','História porúch a prestojov'],
+   q1:'Načo ho chcete použiť najskôr?', o1:[
+    ['Hľadanie úzkych hrdiel', 2, 'Kde linka stráca čas', 'Z dát zo strojov ukážeme, kde sa hromadí materiál a ktorý stroj brzdí celú linku.'],
+    ['Plánovanie zmien', 3, 'Skúška nanečisto', 'Nový produkt alebo nový stroj si najprv vyskúšate v simulácii.'],
+    ['Prediktívna údržba', 3, 'Porucha nepríde nečakane', 'Model sa naučí, ako vyzerá stroj pred poruchou, a údržbu naplánuje včas.'],
+    ['Školenie operátorov', 2, 'Tréning bez rizika', 'Operátori si obsluhu vyskúšajú na dvojčati bez prestoja skutočnej linky.']],
+   q2:'Ako sú na tom vaše stroje?', o2:[
+    ['Moderné, s PLC', 0, 'Priame napojenie', 'Dáta čítame priamo z riadiacich systémov strojov cez OPC UA.'],
+    ['Mix starých a nových', 3, 'Dovybavenie senzormi', 'Staršie stroje dovybavíme senzormi, aby dvojča videlo celú linku.'],
+    ['Viac závodov', 5, 'Dvojča pre celú skupinu', 'Porovnáte linky medzi závodmi a najlepšie postupy prenesiete všade.']]},
+  {id:'hra', t:'Hra, ktorá učí triediť odpad', tag:'Hra', w:9, h:'Triedenie ako hra, ktorá baví',
+   p:'Mobilná hra pre deti, v ktorej sa za správne triedenie odomykajú levely a mesto v hre sa postupne čistí.',
+   f:['Levely podľa veku','Odmeny a zbierky','Režim pre celú triedu','Pravidlá podľa vašej obce'],
+   q1:'Kto hru objednáva?', o1:[
+    ['Obec alebo mesto', 1, 'Hra pre obyvateľov', 'Pravidlá triedenia presne podľa vašej obce a kalendár zvozu priamo v hre.'],
+    ['Škola', 1, 'Hra do vyučovania', 'Učiteľ spustí súťaž pre triedu a vidí, čo deťom ide a čo nie.'],
+    ['Firma na odpad', 2, 'Hra ako tvár značky', 'Hra nesie vašu značku a ukáže deťom, čo sa s odpadom deje ďalej.'],
+    ['Múzeum alebo centrum', 2, 'Hra pre návštevníkov', 'Veľká dotyková obrazovka v expozícii a pokračovanie doma v mobile.']],
+   q2:'Na čom sa bude hrať?', o2:[
+    ['V mobile', 0, 'Mobilná hra', 'Pre iOS aj Android, hrá sa aj bez internetu.'],
+    ['Na tabuli v triede', 1, 'Hra na interaktívnej tabuli', 'Veľké ovládanie pre celú triedu naraz.'],
+    ['S kamerou a skutočným odpadom', 4, 'Rozšírená realita', 'Dieťa namieri mobil na skutočný obal a hra mu povie, kam patrí.']]},
+  {id:'vr', t:'VR prehliadka bytov pred dostavbou', tag:'VR', w:10, h:'Byt, do ktorého sa dá vojsť pred kolaudáciou',
+   p:'Záujemca si nasadí okuliare alebo otvorí web a prejde sa bytom, ktorý zatiaľ existuje len na výkrese. Vyskúša si podlahy, kuchyňu aj výhľad z okna.',
+   f:['Prechádzka v reálnej mierke','Výber podláh a obkladov','Výhľad podľa poschodia','Prehliadka aj vo webe'],
+   q1:'Čo má prehliadka predávať?', o1:[
+    ['Nové byty v projekte', 0, 'Predaj z výkresov', 'Z projektových výkresov postavíme 3D model a byty sa dajú predávať skôr.'],
+    ['Štandard a nadštandard', 2, 'Konfigurátor vybavenia', 'Kupujúci si vyberie materiály a hneď vidí cenu príplatku.'],
+    ['Celý areál a okolie', 3, 'Projekt v krajine', 'Model okolia, parku a parkovania, aj s tieňom v rôznych ročných obdobiach.'],
+    ['Kancelárie na prenájom', 2, 'Kancelárie na mieru', 'Nájomca si poskladá priečky a pracovné miesta a vidí, koľko ľudí sa zmestí.']],
+   q2:'Kde ju budú ľudia pozerať?', o2:[
+    ['Vo webe a v mobile', 0, 'Web bez inštalácie', 'Prehliadka beží v prehliadači a dá sa poslať odkazom.'],
+    ['V okuliaroch v predajni', 2, 'VR v predajnom centre', 'Plná virtuálna realita v okuliaroch pre najsilnejší zážitok.'],
+    ['Spolu s maklérom na diaľku', 3, 'Spoločná prehliadka', 'Maklér a klient sa stretnú v byte na diaľku a prechádzajú ho spolu.']]},
+  {id:'robot', t:'Robot, ktorý z e-mailov urobí objednávky', tag:'Automatizácia', w:6, h:'Objednávky, ktoré sa prepíšu samé',
+   p:'Robot číta e-maily a prílohy od zákazníkov, rozpozná objednávku a založí ju v systéme. Človek skontroluje len to, čo si robot nie je istý.',
+   f:['Čítanie PDF, Excelu aj textu','Spárovanie so zákazníkom a cenníkom','Kontrola sporných položiek','Potvrdenie zákazníkovi'],
+   q1:'Ako vám objednávky chodia?', o1:[
+    ['Ako PDF v prílohe', 0, 'Čítanie PDF', 'Robot sa naučí formáty vašich stálych zákazníkov aj úplne nové.'],
+    ['Voľným textom v e-maile', 1, 'Porozumenie textu', 'Vetu „pošlite ako minule, ale o dve palety viac“ robot pochopí a doplní z histórie.'],
+    ['Ako fotky a skeny', 2, 'Aj ručne písané', 'Prečítame aj odfotené papierové objednávky s pečiatkou.'],
+    ['Všetkými spôsobmi naraz', 2, 'Jedna brána pre všetko', 'E-mail, portál aj zápisky z telefonátov skončia na jednom mieste.']],
+   q2:'Kam má objednávku zapísať?', o2:[
+    ['Do Pohody alebo Money', 1, 'Zápis do účtovníctva', 'Objednávka vznikne priamo v ekonomickom systéme, ktorý už používate.'],
+    ['Do nášho ERP', 2, 'Napojenie na ERP', 'Napojíme sa cez rozhranie vášho ERP, napríklad SAP, Helios alebo Karat.'],
+    ['Do nového systému', 4, 'Robot aj systém', 'Postavíme aj samotný systém objednávok a robot bude jeho prvým pomocníkom.']]},
+  {id:'farma', t:'Platforma: farmári a reštaurácie', tag:'Platforma', w:12, h:'Miestne suroviny bez sprostredkovateľa',
+   p:'Reštaurácie objednávajú priamo od farmárov z okolia. Farmár vidí dopyt dopredu a kuchár vie, čo bude čerstvé budúci týždeň.',
+   f:['Ponuka podľa sezóny','Objednávka na týždeň dopredu','Rozvozové trasy','Hodnotenie kvality'],
+   q1:'Ako sa platforma uživí?', o1:[
+    ['Provízia z objednávky', 1, 'Provízny model', 'Platby idú cez platformu a provízia sa strhne automaticky.'],
+    ['Predplatné pre reštaurácie', 1, 'Predplatné', 'Reštaurácie platia mesačne, farmári sú zadarmo.'],
+    ['Vlastný sklad a rozvoz', 4, 'Platforma s logistikou', 'Pridáme príjem na sklade, chladenie a rozvoz po trasách.'],
+    ['Projekt regiónu', 0, 'Regionálny projekt', 'Platformu prevádzkuje kraj alebo miestna akčná skupina na podporu miestnych.']],
+   q2:'Aký veľký má byť štart?', o2:[
+    ['Jedno mesto', 0, 'Pilot v jednom meste', 'Začneme s pár farmármi a reštauráciami a overíme, čo funguje.'],
+    ['Celý kraj', 2, 'Krajská sieť', 'Viac rozvozových zón a zberných miest.'],
+    ['Aj pre domácnosti', 4, 'Aj pre ľudí doma', 'Pridáme predaj domácnostiam s bedničkami na výdajných miestach.']]},
+  {id:'kamera', t:'Kamera, ktorá nájde chybný výrobok', tag:'Počítačové videnie', w:10, h:'Kontrola kvality, ktorá sa neunaví',
+   p:'Kamera nad linkou kontroluje každý kus. Umelá inteligencia za zlomok sekundy rozpozná škrabanec, chýbajúcu súčiastku alebo zlú etiketu.',
+   f:['Stovky kusov za minútu','Fotka každej chyby','Štatistiky chýb po zmenách','Vyradenie kusu z linky'],
+   q1:'Čo kontrolujete?', o1:[
+    ['Povrch a lak', 2, 'Kontrola povrchu', 'Špeciálne osvetlenie zvýrazní škrabance, bubliny aj rozdiely vo farbe.'],
+    ['Kompletnosť zostavy', 1, 'Nič nechýba', 'Kamera skontroluje každú skrutku, kábel a štítok podľa vzoru.'],
+    ['Etikety a kódy', 0, 'Správna etiketa', 'Prečíta text, dátum spotreby aj čiarový kód a porovná ich s objednávkou.'],
+    ['Rozmery', 3, 'Meranie bez dotyku', '3D kamera odmeria kus s presnosťou na desatiny milimetra.']],
+   q2:'Čo sa má stať s chybným kusom?', o2:[
+    ['Len upozorniť človeka', 0, 'Upozornenie', 'Svetlo a zvuk na linke a záznam s fotkou.'],
+    ['Automaticky ho vyradiť', 2, 'Automatické vyradenie', 'Napojíme sa na riadenie linky a chybný kus odíde sám.'],
+    ['Nájsť príčinu chyby', 3, 'Hľadanie príčiny', 'Chyby spojíme s dátami zo strojov a ukážeme, kedy a prečo vznikajú.']]},
+  {id:'hasici', t:'Zvolávanie dobrovoľných hasičov', tag:'Mobilná aplikácia', w:6, h:'Výjazd za pár minút',
+   p:'Pri poplachu dostanú hasiči upozornenie, ktoré prerazí aj tichý režim. Jedným ťuknutím potvrdia, či idú, a veliteľ hneď vidí, kto príde a kedy.',
+   f:['Poplach cez tichý režim','Potvrdenie jedným ťuknutím','Kto ide a za koľko minút','Kniha výjazdov'],
+   q1:'Kto ju bude používať?', o1:[
+    ['Jeden zbor', 0, 'Pre jeden zbor', 'Jednoduché nasadenie a zaškolenie na jednej schôdzi.'],
+    ['Všetky zbory v okrese', 2, 'Pre celý okres', 'Operačné stredisko vidí pripravenosť všetkých zborov naraz.'],
+    ['Hasiči aj záchranári', 3, 'Viac zložiek', 'Spoločné zvolávanie pre hasičov, záchranárov aj horskú službu.'],
+    ['Všetci obyvatelia obce', 2, 'Obecný rozhlas v mobile', 'Varovania pri povodni či požiari dostane každý obyvateľ.']],
+   q2:'Čo okrem zvolania?', o2:[
+    ['Nič, len rýchle zvolanie', 0, 'Čisté zvolanie', 'Jedna vec, ktorá musí fungovať vždy.'],
+    ['Navigácia k zásahu', 1, 'Cesta k zásahu', 'Adresa, hydranty na mape a navigácia priamo na miesto.'],
+    ['Technika a školenia', 2, 'Celý zbor v aplikácii', 'Technika, revízie, školenia a lekárske prehliadky s pripomienkami.']]},
+  {id:'pekaren', t:'Predpoveď dopytu pre pekáreň', tag:'Dáta a predikcie', w:7, h:'Koľko chleba upiecť zajtra',
+   p:'Model sa učí z predajov, počasia, sviatkov a akcií. Každý večer povie, koľko čoho upiecť pre každú predajňu, takže sa menej vyhadzuje a regály nezívajú prázdnotou.',
+   f:['Predpoveď pre každú predajňu','Vplyv počasia a sviatkov','Návrh plánu pečenia','Vyhodnotenie vratiek'],
+   q1:'Kde sa vám to najviac kazí?', o1:[
+    ['Veľa vratiek', 0, 'Menej vratiek', 'Model sa zameria na položky, ktoré sa najčastejšie vracajú.'],
+    ['Prázdne regály poobede', 1, 'Plné regály do zatvorenia', 'Predpoveď po hodinách a návrh dopekania počas dňa.'],
+    ['Novinky a akcie', 2, 'Odhad pre novinky', 'Pre nový výrobok model použije podobné produkty z histórie.'],
+    ['Plán ľudí a surovín', 2, 'Plán celej výroby', 'Z predpovede vznikne plán smien pekárov a objednávka múky.']],
+   q2:'Koľko máte predajní?', o2:[
+    ['Jednu až tri', 0, 'Malá pekáreň', 'Stačia dáta z pokladne a jednoduchý prehľad každé ráno.'],
+    ['Desiatky predajní', 2, 'Sieť predajní', 'Predpoveď pre každú predajňu a plán rozvozu.'],
+    ['Aj pre obchodné reťazce', 3, 'Aj veľkoodber', 'Pridáme objednávky reťazcov a ich akcie.']]}
+];
+</script>
+<script>
+/* Spoločné vetvy pre každé semienko */
+const INTEG = {q:'S čím to prepojíme?', o:[
+  ['S účtovníctvom', 1, 'Napojenie na účtovníctvo', 'Doklady a adresár si systém vymieňa s Pohodou, Money alebo iným účtovníctvom, takže nič neprepisujete.'],
+  ['S platobnou bránou', 1, 'Platby online', 'Platby kartou, prevodom aj predplatné, s automatickým párovaním.'],
+  ['S existujúcim softvérom', 2, 'Prepojenie cez rozhranie', 'Pri zameraní preveríme rozhrania vašich systémov a dohodneme spoľahlivý prenos dát.'],
+  ['S mapou a polohou', 1, 'Poloha a mapy', 'Trasy, zóny a poloha ľudí alebo vecí priamo na mape.'],
+  ['Zatiaľ s ničím', 0, 'Samostatný systém', 'Začneme samostatne a rozhrania pripravíme tak, aby sa dalo kedykoľvek pripojiť.']]};
+/* Rozsah = [názov, podiel z celého diela, nadpis, text, poznámka] */
+const SCALE = {q:'Aká veľká má byť prvá verzia?', o:[
+  ['Prototyp na overenie', .35, 'Prototyp', 'O pár týždňov budete mať verziu na preklikanie a nápad overíte so skutočnými ľuďmi.', 'pár týždňov'],
+  ['Prvá verzia do prevádzky', .65, 'Prvá ostrá verzia', 'Postavíme jadro, ktoré sa dá naozaj používať, a ďalšie časti pridáme podľa skúseností.', 'jadro systému'],
+  ['Celé dielo naraz', 1, 'Kompletné dielo', 'Celé riešenie s napojeniami, prenosom dát a zaškolením ľudí.', 'všetko naraz']]};
+</script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k){ try { return localStorage.getItem(k) } catch(e){ return null } },
+    set(k,v){ try { localStorage.setItem(k,v) } catch(e){} }
+  };
+  const tree = $('#tree'), wires = $('#wires'), stepsEl = $('#steps'), startEl = $('#start');
+  const NS = 'http://www.w3.org/2000/svg';
+  const narrowMq = matchMedia('(max-width:700px)'), calm = matchMedia('(prefers-reduced-motion: reduce)');
+  const pad = n => String(n).padStart(2, '0'), num = n => n.toLocaleString('sk-SK');
+  const wk = w => w ? `+${w} týž.` : 'v základe';
+  const toOpts = (arr, pre) => arr.map((o, k) => ({id:pre + k, t:o[0], d:wk(o[1])}));
+  const FIN = {id:'fin', t:'Zostaviť návrh', d:'koniec stromu', fin:true};
+
+  let path = [];
+  try { const p = JSON.parse(store.get('qora-seed-path')); if (Array.isArray(p)) path = p.map(String) } catch(e){}
+
+  /* ── Algoritmus: z cesty (zoznamu volieb) postaví uzly stromu ── */
+  function totals(ctx){
+    let full = ctx.integ ? ctx.integ[1] : 0;
+    ctx.seeds.forEach(x => full += x.s.w + (x.a ? x.a[1] : 0) + (x.b ? x.b[1] : 0));
+    const mid = full * (ctx.scale ? ctx.scale[1] : 1);
+    const a = Math.max(2, Math.round(mid * .85));
+    return {n:ctx.seeds.length, a, b:Math.max(a + 1, Math.round(mid * 1.15)), scaled:!!ctx.scale};
+  }
+  const seedOpts = (ctx, graft) => SEEDS.filter(s => !ctx.seeds.some(x => x.s.id === s.id))
+    .map(s => ({id:s.id, t:(graft ? '+ ' : '') + s.t, d:s.tag}));
+  const rootStep = () => ({kind:'root', label:'Koreň', q:'Ktoré semienko zasadíme?', opts:seedOpts({seeds:[]}, false)});
+
+  function moreStep(base, ctx){
+    const opts = seedOpts(ctx, true);
+    opts.push(FIN);
+    return {...base, kind:'more', running:{...totals(ctx), scale: ctx.scale ? ctx.scale[2] : 'celé dielo'}, opts,
+      q: opts.length > 1 ? 'Prištepíme ďalšie semienko, alebo zostavíme návrh?' : 'Všetky semienka sú zasadené. Zostavíme návrh?'};
+  }
+
+  function advance(cur, opt, ctx){
+    const idx = +opt.id.slice(1);
+    if (cur.kind === 'root' || cur.kind === 'more'){
+      if (opt.fin) return {kind:'final', label:'Výsledok', ctx};
+      const s = SEEDS.find(x => x.id === opt.id);
+      ctx.seeds.push({s, a:null, b:null});
+      return {kind:'seed', s, label:'Semienko', title:s.h, q:s.q1, opts:toOpts(s.o1, 'a'), meta:[s.tag, `základ ${s.w} týž.`],
+        body:`<p>${s.p}</p><ul class="feats">${s.f.map(f => `<li>${f}</li>`).join('')}</ul>`};
+    }
+    const last = ctx.seeds[ctx.seeds.length - 1];
+    if (cur.kind === 'seed'){
+      const o = cur.s.o1[idx]; last.a = o;
+      return {kind:'branch', s:cur.s, label:'Vetva', title:o[2], body:`<p>${o[3]}</p>`, meta:[wk(o[1])], q:cur.s.q2, opts:toOpts(cur.s.o2, 'b')};
+    }
+    if (cur.kind === 'branch'){
+      const o = cur.s.o2[idx]; last.b = o;
+      const base = {label:'Vetva', title:o[2], body:`<p>${o[3]}</p>`, meta:[wk(o[1])]};
+      if (!ctx.integ) return {...base, kind:'integ', q:INTEG.q, opts:toOpts(INTEG.o, 'i')};
+      return moreStep(base, ctx);
+    }
+    if (cur.kind === 'integ'){
+      const o = INTEG.o[idx]; ctx.integ = o;
+      return {kind:'scale', label:'Prípojka', title:o[2], body:`<p>${o[3]}</p>`, meta:[wk(o[1])], q:SCALE.q,
+        opts:SCALE.o.map((x, k) => ({id:'s' + k, t:x[0], d:x[4]}))};
+    }
+    if (cur.kind === 'scale'){
+      const o = SCALE.o[idx]; ctx.scale = o;
+      return moreStep({label:'Rozsah', title:o[2], meta:[o[4]],
+        body:`<p>${o[3]}</p><p>Semienka sa dajú kombinovať. Prištepte ďalšie a strom porastie novým smerom.</p>`}, ctx);
+    }
+  }
+
+  function build(){
+    const ctx = {seeds:[], integ:null, scale:null}, steps = [rootStep()];
+    for (let i = 0; i < path.length; i++){
+      const cur = steps[i], opt = cur.opts && cur.opts.find(o => o.id === path[i]);
+      if (!opt){ path = path.slice(0, i); break }
+      steps.push(advance(cur, opt, ctx));
+    }
+    return {steps, ctx};
+  }
+
+  /* Koľko rôznych ciest ešte vedie z posledného uzla k návrhu (bez ďalšieho štepenia) */
+  const combos = s => s.o1.length * s.o2.length;
+  function pathsAhead(last, ctx){
+    const tail = ctx.integ ? 1 : INTEG.o.length * SCALE.o.length;
+    switch (last.kind){
+      case 'root': return SEEDS.reduce((n, s) => n + combos(s), 0) * INTEG.o.length * SCALE.o.length;
+      case 'seed': return combos(last.s) * tail;
+      case 'branch': return last.s.o2.length * tail;
+      case 'integ': return INTEG.o.length * SCALE.o.length;
+      case 'scale': return SCALE.o.length;
+      case 'more': return 1 + SEEDS.filter(s => !ctx.seeds.some(x => x.s.id === s.id)).reduce((n, s) => n + combos(s), 0);
+      default: return 1;
+    }
+  }
+  /* ── Vykreslenie uzlov ── */
+  function finalBody(ctx){
+    const t = totals(ctx), W = t.b, p = W >= 8 ? 2 : 1, rng = (a, b) => a >= b ? `T${a}` : `T${a}–T${b}`;
+    const rows = ctx.seeds.map(x => [x.s.t, [x.a && x.a[2], x.b && x.b[2]].filter(Boolean).join(', ')]);
+    if (ctx.integ) rows.push(['Prípojka', ctx.integ[2]]);
+    if (ctx.scale) rows.push(['Rozsah', ctx.scale[2]]);
+    const phases = [['Zameranie','T1'], ['Projekt', rng(2, 1 + p)], ['Stavba', rng(2 + p, Math.max(2 + p, W - 2))],
+      ['Dokončenie', rng(Math.max(2, W - 1), W)], ['Spustenie', 'T' + W], ['Správa', 'od T' + (W + 1)]];
+    return `<p>Takto vyzerá váš strom. Presný rozsah, cenu a harmonogram dostanete po bezplatnom zameraní.</p>
+      <table class="sum"><tbody>${rows.map(r => `<tr><td colspan="2"><b>${r[0]}</b><br>${r[1]}</td></tr>`).join('')}
+      <tr class="tot"><td>Odhad do spustenia</td><td class="n">${t.a}–${t.b} týž.</td></tr></tbody></table>
+      <ol class="flow">${phases.map(f => `<li><span>${f[0]}<small>${f[1]}</small></span></li>`).join('')}</ol>
+      <div class="yours"><b>Vaše semienko môže byť úplne iné.</b> Toto boli len naše príklady. Napíšte nám, čo chcete postaviť vy, a strom nakreslíme spolu pri prvom stretnutí.</div>
+      <div class="contact">
+        <span class="label">Kontakt</span>
+        <a class="mail" href="mailto:${MAIL}?subject=${encodeURIComponent('Môj strom z qora.sk')}&amp;body=${encodeURIComponent(treeText(ctx, t))}">${MAIL}</a>
+        <div class="contact-row"><a class="send" href="mailto:${MAIL}?subject=${encodeURIComponent('Môj strom z qora.sk')}&amp;body=${encodeURIComponent(treeText(ctx, t))}">Poslať strom e-mailom</a><button class="send ghost" type="button" data-copy="tree">Kopírovať strom</button><button class="send ghost" type="button" data-copy="mail">Kopírovať e-mail</button></div>
+        <p>Strom vložte do e-mailu a pridajte k nemu svoje vlastné semienko. Ozveme sa do dvoch pracovných dní a dohodneme bezplatné zameranie.</p>
+      </div>`;
+  }
+  const MAIL = 'info@qora.sk';
+  let lastTree = '';
+  function treeText(ctx, t){
+    const lines = ['Môj strom z qora.sk', ''];
+    ctx.seeds.forEach(x => lines.push(`Semienko: ${x.s.t}` + [x.a && x.a[2], x.b && x.b[2]].filter(Boolean).map(v => `, ${v}`).join('')));
+    if (ctx.integ) lines.push('Prípojka: ' + ctx.integ[2]);
+    if (ctx.scale) lines.push('Rozsah: ' + ctx.scale[2]);
+    lines.push(`Odhad: ${t.a}–${t.b} týždňov`, '', 'Moje vlastné semienko:', '');
+    return lastTree = lines.join('\n');
+  }
+
+  const KIND = {root:'Štart', seed:'Semienko', branch:'Proces', integ:'Proces', scale:'Proces', more:'Proces', final:'Koniec'};
+  function stepHTML(s, i, chosen){
+    let body;
+    if (s.kind === 'root') body = '<h2 tabindex="-1">Postavíme akýkoľvek softvér</h2><p>Interný systém, mobilnú aplikáciu, AI nad vašimi dátami, softvér do stroja, hru aj VR. Od nápadu po spustenie, na kľúč.</p><p>Tento web nemá menu. Rastie ako strom: vyberte si jedno z našich semienok a sledujte, kam všade sa môže rozvetviť.</p>';
+    else if (s.kind === 'final') body = '<h3 tabindex="-1">Váš softvér na kľúč</h3>' + finalBody(s.ctx);
+    else body = `<h3 tabindex="-1">${s.title}</h3>${s.body}`;
+    const meta = s.meta ? `<div class="meta">${s.meta.map(m => `<span class="chip">${m}</span>`).join('')}</div>` : '';
+    const run = s.running ? `<div class="running"><div><span class="label">Semienka</span><span class="num">${s.running.n}</span></div><div><span class="label">Odhad</span><span class="num">${s.running.a}–${s.running.b} týž.</span></div><div><span class="label">Rozsah</span><span class="num">${s.running.scale}</span></div></div>` : '';
+    const dec = !s.q ? '' : `<div class="decision"><span class="label">Rozhodnutie ${i}</span><span class="q">${s.q}</span>` +
+      (s.kind === 'root' || s.kind === 'more' ? '<span class="seed-note">Toto sú len príklady z našej záhrady. Vaše vlastné semienko nám prineste pri prvom kontakte.</span>' : '') +
+      '<span class="dia"></span></div>';
+    const opts = !s.opts ? '' : `<div class="opts" role="group" aria-label="${s.q}">${s.opts.map((o, j) =>
+      `<button type="button" class="opt${chosen === o.id ? ' on' : chosen != null ? ' cut' : ''}${o.fin ? ' fin' : ''}" data-i="${i}" data-id="${o.id}" aria-pressed="${o.id === chosen}" style="--i:${j}"><span class="k">Vetva ${i}.${String.fromCharCode(65 + j)}</span><span class="t">${o.t}</span><span class="d">${o.d}</span></button>`).join('')}</div>`;
+    return `<section class="step" data-i="${i}"><div class="col"><article class="node"><div class="node-head"><span class="label">Uzol ${pad(i)} · ${s.label}</span><span class="label">${KIND[s.kind]}</span></div><div class="node-body">${body}${meta}${run}</div>${dec}</article></div>${opts}</section>`;
+  }
+
+  function render(fresh){
+    const {steps, ctx} = build();
+    store.set('qora-seed-path', JSON.stringify(path));
+    const last = steps[steps.length - 1], t = totals(ctx);
+    stepsEl.innerHTML = steps.map((s, i) => stepHTML(s, i, path[i])).join('') +
+      (last.kind === 'final' ? '<span class="term" id="end">KONIEC</span>' : '<div class="hint-row"><p class="hint">Vyberte vetvu a strom porastie ďalej ↓</p></div>');
+    if (fresh != null && stepsEl.children[fresh]) stepsEl.children[fresh].classList.add('fresh');
+    $('#status').innerHTML = `<span>Hĺbka <b>${steps.length - 1}</b></span><span>Semienka <b>${t.n}</b></span>` +
+      `<span>Ciest pred vami <b>${num(pathsAhead(last, ctx))}</b></span>` + (t.scaled ? `<span>Odhad <b>${t.a}–${t.b} týž.</b></span>` : '');
+    place();
+    draw(fresh);
+  }
+
+  /* ── Rozmiestnenie: každý uzol sa posunie pod zvolenú vetvu ── */
+  function pos(el){
+    let x = 0, y = 0, n = el;
+    while (n && n !== tree){ x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent }
+    return {x, y, w: el.offsetWidth, h: el.offsetHeight};
+  }
+  function place(){
+    const narrow = narrowMq.matches, tw = tree.clientWidth, secs = [...stepsEl.querySelectorAll('.step')];
+    let left = 0, w = 0;
+    secs.forEach((s, i) => {
+      const col = s.querySelector('.col'); w = col.offsetWidth; left = 0;
+      if (!narrow){
+        if (i === 0) left = (tw - w) / 2;
+        else { const ch = secs[i - 1].querySelector('.opt.on'); if (ch){ const p = pos(ch); left = Math.min(Math.max(p.x + p.w / 2 - w / 2, 0), tw - w) } }
+      }
+      col.style.marginLeft = left + 'px';
+    });
+    const end = $('#end');
+    if (end) end.style.marginLeft = narrow ? '0px' : (left + (w - end.offsetWidth) / 2) + 'px';
+  }
+
+  /* ── Vetvy: SVG čiary medzi uzlami, nové sa dokreslia ── */
+  const live = new Map(), marks = document.createElementNS(NS, 'g');
+  wires.appendChild(marks);
+  function draw(fresh){
+    const narrow = narrowMq.matches, want = [], dots = [], cuts = [], secs = [...stepsEl.querySelectorAll('.step')];
+    const key = i => path.slice(0, i).join('.');
+    const curve = (x1, y1, x2, y2) => { const my = (y1 + y2) / 2; return `M${x1} ${y1}C${x1} ${my} ${x2} ${my} ${x2} ${y2}` };
+    const st = pos(startEl), n0 = pos(secs[0].querySelector('.node'));
+    want.push({id:'start', cls:'main', dl:0, d: narrow ? `M24 ${st.y + st.h}V${n0.y}` : curve(st.x + st.w / 2, st.y + st.h, n0.x + n0.w / 2, n0.y)});
+    secs.forEach((s, i) => {
+      const dia = s.querySelector('.dia'), btns = [...s.querySelectorAll('.opt')], next = secs[i + 1];
+      if (!dia || !btns.length) return;
+      const dp = pos(dia), ox = dp.x + dp.w / 2, oy = dp.y + dp.h / 2 + dp.h * .71, made = path[i] != null;
+      dots.push([ox, oy]);
+      btns.forEach((b, j) => {
+        const bp = pos(b), on = b.classList.contains('on'), cls = !made ? 'idle' : on ? 'main' : 'cut';
+        want.push({id:`o${i}|${key(i)}|${b.dataset.id}`, cls, dl: fresh === i ? .45 + j * .05 : 0,
+          d: narrow ? `M${ox} ${oy}V${bp.y + bp.h / 2}H${bp.x}` : curve(ox, oy, bp.x + bp.w / 2, bp.y)});
+        if (cls === 'cut' && !narrow) cuts.push([bp.x + bp.w / 2, bp.y - 12]);
+        if (on && next){
+          const np = pos(next.querySelector('.node'));
+          want.push({id:`n${i}|${key(i + 1)}`, cls:'main', dl:0,
+            d: narrow ? `M${ox} ${bp.y + bp.h / 2}V${np.y}` : curve(bp.x + bp.w / 2, bp.y + bp.h, np.x + np.w / 2, np.y)});
+          dots.push(narrow ? [ox, bp.y + bp.h / 2] : [bp.x + bp.w / 2, bp.y + bp.h]);
+        }
+      });
+    });
+    const end = $('#end');
+    if (end){
+      const lp = pos(secs[secs.length - 1].querySelector('.node')), ep = pos(end), x = narrow ? 24 : lp.x + lp.w / 2;
+      want.push({id:'end|' + key(secs.length), cls:'main', dl:.3, d:`M${x} ${lp.y + lp.h}V${ep.y}`});
+    }
+    const grow = fresh != null && !calm.matches, ids = new Set();
+    want.forEach(w => {
+      ids.add(w.id);
+      let p = live.get(w.id);
+      const isNew = !p;
+      if (isNew){ p = document.createElementNS(NS, 'path'); wires.insertBefore(p, marks); live.set(w.id, p) }
+      p.setAttribute('d', w.d);
+      p.setAttribute('class', w.cls + (p.classList.contains('grow') ? ' grow' : ''));
+      if (isNew && grow){
+        p.style.setProperty('--len', Math.ceil(p.getTotalLength()) + 2);
+        p.style.setProperty('--dl', w.dl + 's');
+        p.classList.add('grow');
+        p.addEventListener('animationend', () => p.classList.remove('grow'), {once:true});
+      }
+    });
+    live.forEach((p, id) => { if (!ids.has(id)){ p.remove(); live.delete(id) } });
+    marks.innerHTML = dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5"/>`).join('') +
+      cuts.map(([x, y]) => `<path class="x" d="M${x - 4} ${y - 4}l8 8m0-8l-8 8"/>`).join('');
+  }
+
+  function scrollToStep(i, focus){
+    const s = stepsEl.querySelectorAll('.step')[i];
+    if (!s) return;
+    scrollTo({top: s.getBoundingClientRect().top + scrollY - $('.bar').offsetHeight - 28, behavior: calm.matches ? 'auto' : 'smooth'});
+    if (focus){ const h = s.querySelector('h2,h3'); if (h) h.focus({preventScroll:true}) }
+  }
+
+  /* ── Udalosti ── */
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.opt');
+    if (!b) return;
+    const i = +b.dataset.i, id = b.dataset.id;
+    if (path[i] === id){ scrollToStep(i + 1); return }
+    path = path.slice(0, i).concat(id);
+    render(i + 1);
+    scrollToStep(i + 1, true);
+  });
+  $('#reset').addEventListener('click', () => { path = []; render(0); scrollTo({top:0, behavior: calm.matches ? 'auto' : 'smooth'}) });
+  $('#home').addEventListener('click', e => { e.preventDefault(); scrollTo({top:0, behavior: calm.matches ? 'auto' : 'smooth'}) });
+
+  const root = document.documentElement, themeBtn = $('#theme'), dark = matchMedia('(prefers-color-scheme: dark)');
+  const saved = store.get('qora-theme');
+  if (saved) root.dataset.theme = saved;
+  const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : dark.matches;
+  const syncTheme = () => { themeBtn.textContent = isDark() ? 'Svetlotlač' : 'Modrotlač' };
+  themeBtn.addEventListener('click', () => { root.dataset.theme = isDark() ? 'light' : 'dark'; store.set('qora-theme', root.dataset.theme); syncTheme() });
+  if (dark.addEventListener) dark.addEventListener('change', syncTheme);
+  syncTheme();
+
+  /* Kopírovanie e-mailu alebo celého stromu do schránky */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    const text = btn.dataset.copy === 'tree' ? lastTree : MAIL, label = btn.textContent;
+    const done = () => { btn.textContent = 'Skopírované'; setTimeout(() => btn.textContent = label, 1600) };
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta); ta.select();
+      try { if (document.execCommand('copy')) done() } catch(err){}
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  });
+
+  let raf = 0;
+  const relayout = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; place(); draw(null) }) };
+  if (window.ResizeObserver) new ResizeObserver(relayout).observe(tree); else addEventListener('resize', relayout);
+  if (document.fonts) document.fonts.ready.then(relayout);
+
+  render(0);
+})();
+</script>
+</body>
+</html>
